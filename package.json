@@ -1,0 +1,23 @@
+{
+  "name": "resin-server",
+  "version": "0.0.1",
+  "description": "Node service for providing a downloadable package link to a Resin-based app.",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [
+    "sap",
+    "offline",
+    "first",
+    "resin"
+  ],
+  "author": "moneppo (github.com/moneppo)",
+  "license": "MIT",
+  "dependencies": {
+    "plist": "~1.0.1",
+    "appdmg": "~0.1.12",
+    "cheerio": "~0.17.0",
+    "request": "~2.36.0"
+  }
+}
