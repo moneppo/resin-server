@@ -4,12 +4,12 @@ var platformGenerators = {
 	macosx: require('./macosx.js')
 };
 
-function generateLink(platform, url, callback) {
+function generateLink(platform, url, identifier, callback) {
 	if (platformGenerators[platform] === undefined) {
 		return callback("Platform is not supported.");
 	}
 
-	platformGenerators[platform](url, function(error, filePath) {
+	platformGenerators[platform](url, identifier, function(error, filePath) {
 		if (error) {
 			return callback(error);
 		}

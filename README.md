@@ -37,5 +37,8 @@ This function is mostly meant to be served in a RESTful API. for example, using 
 
 resin-server automatically caches the generated binaries to improve performance for multiple calls. If you need to force the regeneration of a binary, use `forceUpdate` exactly like you would use the `file` function.
 
+TODO:
+http://hogliux.github.io/bomutils/tutorial.html
+
 
 

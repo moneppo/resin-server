@@ -1,14 +1,15 @@
 var plist = require('plist');
 var fs = require('fs');
-var dmg = require('appdmg');
 var http = require('http');
 var request = require("request");
 var cheerio = require('cheerio');
 var url = require('url');
 var path = require('path');
 var spawn = require('child_process').spawn;
+var ncp = require('ncp').ncp;
+var zipstream = require('archiver');
 
-module.exports = function(uri, callback) {
+module.exports = function(uri, identifer, callback) {
 
 	// Examples:
 	// Regular Expressions - JavaScript | MDN		: Regular Expressions
@@ -30,7 +31,25 @@ module.exports = function(uri, callback) {
 		})
 	}
 
-	function createIcns($, callback) {
+	function writeZip(dir, name, callback) {
+		var output = file_system.createWriteStream(name);
+		var archive = archiver('zip');
+
+		output.on('close', function () {
+    	console.log(archive.pointer() + ' total bytes');
+		});
+
+		archive.on('error', callback);
+
+		archive.pipe(output);
+		archive.bulk([{ expand: true, cwd: dir, src: ['**'], dest: ''}]);
+		archive.finalize();
+		callback(null, name);
+	}
+
+
+
+	function createIcns($, destDir, callback) {
 		var possibleLinks = [
 			'link[rel=icon]',
 			'link[rel=apple-touch-icon-precomposed]',
@@ -57,27 +76,15 @@ module.exports = function(uri, callback) {
 		var parsed = href.parse();
 		var fullPath = url.resolve(uri, href);
 		http.get(fullPath, function(res) {
-			var filename = path.basename(parsed.path);
+			var filename = destDir + '/' + path.basename(parsed.path);
 			var file = fs.createWriteStream(filename);
 			res.pipe(file);
 			res.on('end', function() {
 				file.close();
 				png2icns(filename, callback);
 			});
-			});
 		});
 	}
- 
-	var dmgConfig = {
-	  title: "Default App",
-	  app: "Resin.app",
-	  icon: "Resin.app/Contents/Resources/resin.icns",
-	  icons: {
-	    size: 80,
-	    app: [192, 344],
-	    alias: [448, 344]
-	  }
-	};
 
 	request({uri: uri}, function(err, response, body) {
 		if (err) {
@@ -85,30 +92,28 @@ module.exports = function(uri, callback) {
 		}
 
   	var $ = cheerio.load(body);
+  	var fullTitle = $('title').text();
+		var title = cleanTitle(fullTitle);
+		var appDir = title + '.app';
 
-  	createIcns($, function(err, iconPath) {
-  		if (err) {
-  			return callback(err);
-  		}
+		ncp('Resin.app', appDir, function (err) {
+			if (err) {
+				return callback(err);
+			}
 
-  		var fullTitle = $('title').text();
-			dmgConfig.title = cleanTitle(fullTitle);
+ 			createIcns($, appdir + '/Contents/Resources/', function(err, iconFile) {
+ 				if (err) {
+  				return callback(err);
+  			}
 
-			dmgConfig.icon = iconPath || dmgConfig.icon;
-
-			fs.writeFile('appdmg.json', JSON.stringify(dmgConfig), function(err) {
-				if (err) {
-					return callback(err);
-				}
-
-				dmg('appdmg.json', dmgConfig.title + '.dmg', function(err, path) {
-  				if (err) {
-  					return callback(err);
-  				}
-
-  				callback(null, path);
-				});
-  		});
+  			var obj = plist.parse(fs.readFileSync(appDir + 'Contents/Info.plist', 'utf8'));
+  			obj.CFBundleName = title;
+  			obj.CFBundleIconFile = iconFile;
+  			obj.CFBundleIdentifier = identifer;
+  			obj.HomePath = uri;
+  			fs.writeFileSync(appDir + 'Contents/Info.plist', plist.build(obj));
+    		writeZip(appDir, title + '.zip', callback);
+ 			});
 		});
 	});
 }
