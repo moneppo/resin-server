@@ -19,12 +19,12 @@ function generateLink(platform, url, identifier, callback) {
 	});
 }
 
-function file(platform, url, callback) {
+function file(platform, url, identifier, callback) {
 	if (cache[platform] !== undefined) {
-		return callback(null, links[platform]);
+		return callback(null, cache[platform]);
 	}
 
-	return generateLink(platform, url, callback);
+	return generateLink(platform, url, identifier, callback);
 }
 
 

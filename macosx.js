@@ -7,22 +7,33 @@ var url = require('url');
 var path = require('path');
 var spawn = require('child_process').spawn;
 var ncp = require('ncp').ncp;
-var zipstream = require('archiver');
+var archiver = require('archiver');
 
 module.exports = function(uri, identifer, callback) {
 
 	// Examples:
 	// Regular Expressions - JavaScript | MDN		: Regular Expressions
 	// Flying Sphinx | Add-ons | Heroku 				: Flying Sphinx
-	function cleanTitle(title) {
+	function cleanTitle(fullTitle) {
 		var title = fullTitle.replace(/[\'\"]/, '');
 		return title.split(/[\:\?\;\!\(\)\[\]\{\}\<\>\/\\\|\*\"\'\-]/)[0].trim();
 	}
 
-	function png2icns(filename, callback) {
+	function png2icns(filename, destDir, callback) {
+		console.log('in:' + filename);
 		var outfilename = path.basename(filename, '.png') + '.icns';
-		grep = spawn('png2icns', [filename, outfilename]);
-		grep.on('exit', function(code) {
+		console.log('out: ' + outfilename);
+		var proc = spawn('png2icns', [destDir + outfilename, filename]);
+
+		proc.stdout.on('data', function (data) {
+  		console.log('stdout: ' + data);
+		});
+
+		proc.stderr.on('data', function (data) {
+  		console.log('stderr: ' + data);
+		});
+
+		proc.on('exit', function(code) {
 			if (code != 0) {
 				return callback("Error generating icns file");
 			}
@@ -32,7 +43,7 @@ module.exports = function(uri, identifer, callback) {
 	}
 
 	function writeZip(dir, name, callback) {
-		var output = file_system.createWriteStream(name);
+		var output = fs.createWriteStream(name);
 		var archive = archiver('zip');
 
 		output.on('close', function () {
@@ -42,7 +53,7 @@ module.exports = function(uri, identifer, callback) {
 		archive.on('error', callback);
 
 		archive.pipe(output);
-		archive.bulk([{ expand: true, cwd: dir, src: ['**'], dest: ''}]);
+		archive.bulk([{ expand: true, cwd: dir, src: ['**'], dest: dir}]);
 		archive.finalize();
 		callback(null, name);
 	}
@@ -73,15 +84,15 @@ module.exports = function(uri, identifer, callback) {
 			return callback("Sorry, only PNG touch icons are supported.");
 		}
 
-		var parsed = href.parse();
+		var parsed = url.parse(href);
 		var fullPath = url.resolve(uri, href);
 		http.get(fullPath, function(res) {
-			var filename = destDir + '/' + path.basename(parsed.path);
+			var filename = path.basename(parsed.path);
 			var file = fs.createWriteStream(filename);
 			res.pipe(file);
 			res.on('end', function() {
 				file.close();
-				png2icns(filename, callback);
+				png2icns(filename, destDir, callback);
 			});
 		});
 	}
@@ -101,17 +112,17 @@ module.exports = function(uri, identifer, callback) {
 				return callback(err);
 			}
 
- 			createIcns($, appdir + '/Contents/Resources/', function(err, iconFile) {
+ 			createIcns($, appDir + '/Contents/Resources/', function(err, iconfilename) {
  				if (err) {
   				return callback(err);
   			}
 
-  			var obj = plist.parse(fs.readFileSync(appDir + 'Contents/Info.plist', 'utf8'));
+  			var obj = plist.parse(fs.readFileSync(appDir + '/Contents/Info.plist', 'utf8'));
   			obj.CFBundleName = title;
-  			obj.CFBundleIconFile = iconFile;
+  			obj.CFBundleIconFile = iconfilename;
   			obj.CFBundleIdentifier = identifer;
   			obj.HomePath = uri;
-  			fs.writeFileSync(appDir + 'Contents/Info.plist', plist.build(obj));
+  			fs.writeFileSync(appDir + '/Contents/Info.plist', plist.build(obj));
     		writeZip(appDir, title + '.zip', callback);
  			});
 		});
