@@ -2,7 +2,7 @@ Configure
 ---------
 
 1. `npm install` to pull all dependencies 
-2. Versions of the binaries are included in bin/<platform>, however you may consider building the right Resin for each platform to get the latest update and place it in this folder.
+2. Go build yourself the flavors of [Resin](http://github.com/moneppo/resin) you need and place them in the base directory.
 3. For Mac OS support, install png2icns for generating the icns files. On Mac OSX use homebrew: `brew install libicns`, for Debian/Ubuntu `apt-get install icnsutils`, Redhat `yum update libicns`, etc.
 
 Usage
@@ -37,8 +37,10 @@ This function is mostly meant to be served in a RESTful API. for example, using 
 
 resin-server automatically caches the generated binaries to improve performance for multiple calls. If you need to force the regeneration of a binary, use `forceUpdate` exactly like you would use the `file` function.
 
-TODO:
-http://hogliux.github.io/bomutils/tutorial.html
+Future Features
+---------------
+* Windows version. MSIs are tricky to do in a platform independent way. If you have a solution, fork me!
+* Proper DMG support. Platform independence is also pretty tricky with DMGs. One lead I have is [this](http://hogliux.github.io/bomutils/tutorial.html).
 
 
 
